@@ -1,21 +1,3 @@
-stages:
-  - deploy
-
-before_script:
-  # Install ssh client if not available
-  - 'which ssh-agent || ( sudo apt-get update -y && sudo apt-get install openssh-client -y )'
-  - eval $(ssh-agent -s)
-
-  # Add SSH key from GitLab CI/CD variable
-  - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-
-  # Setup SSH known_hosts to avoid prompt
-  - mkdir -p ~/.ssh
-  - chmod 700 ~/.ssh
-  - ssh-keyscan -H "$DEV_HOST" >> ~/.ssh/known_hosts
-  - ssh-keyscan -H "$STG_HOST" >> ~/.ssh/known_hosts
-  - ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts
-
 deploy:dev:
   stage: deploy
   only:
@@ -23,38 +5,10 @@ deploy:dev:
   script:
     - echo "Deploying to DEV..."
     - rsync -az --delete ./ "$SSH_USER@$DEV_HOST:~/app/"
-    - ssh "$SSH_USER@$DEV_HOST" <<'EOF'
-        cd ~/app
-        npm install --production
-        pm2 restart myapp || pm2 start server.js --name "myapp"
-        pm2 save
-EOF
-
-deploy:staging:
-  stage: deploy
-  only:
-    - staging
-  script:
-    - echo "Deploying to STAGING..."
-    - rsync -az --delete ./ "$SSH_USER@$STG_HOST:~/app/"
-    - ssh "$SSH_USER@$STG_HOST" <<'EOF'
-        cd ~/app
-        npm install --production
-        pm2 restart myapp || pm2 start server.js --name "myapp"
-        pm2 save
-EOF
-
-deploy:prod:
-  stage: deploy
-  only:
-    - main
-    - master
-  script:
-    - echo "Deploying to PRODUCTION..."
-    - rsync -az --delete ./ "$SSH_USER@$PROD_HOST:~/app/"
-    - ssh "$SSH_USER@$PROD_HOST" <<'EOF'
-        cd ~/app
-        npm install --production
-        pm2 restart myapp || pm2 start server.js --name "myapp"
-        pm2 save
-EOF
+    - |
+      ssh "$SSH_USER@$DEV_HOST" <<'EOF'
+      cd ~/app
+      npm install --production
+      pm2 restart app || pm2 start server.js --name "app"
+      pm2 save
+      EOF
