@@ -9,6 +9,6 @@ deploy:stg:
       ssh "$SSH_USER@$STG_HOST" <<'EOF'
       cd ~/app
       npm install --production
-      pm2 restart myapp || pm2 start server.js --name "myapp"
+      pm2 restart app || pm2 start server.js --name "app"
       pm2 save
       EOF
