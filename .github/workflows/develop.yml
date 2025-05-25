@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - develop
+      - staging
+      - main
+      - master
 
 jobs:
   deploy:
@@ -34,6 +37,28 @@ jobs:
       run: |
         rsync -az --delete ./ $SSH_USER@$DEV_HOST:~/app/
         ssh $SSH_USER@$DEV_HOST << 'EOF'
+          cd ~/app
+          npm install --production
+          pm2 restart myapp || pm2 start server.js --name "myapp"
+          pm2 save
+        EOF
+
+    - name: Deploy to staging
+      if: github.ref == 'refs/heads/staging'
+      run: |
+        rsync -az --delete ./ $SSH_USER@$STG_HOST:~/app/
+        ssh $SSH_USER@$STG_HOST << 'EOF'
+          cd ~/app
+          npm install --production
+          pm2 restart myapp || pm2 start server.js --name "myapp"
+          pm2 save
+        EOF
+
+    - name: Deploy to production
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        rsync -az --delete ./ $SSH_USER@$PROD_HOST:~/app/
+        ssh $SSH_USER@$PROD_HOST << 'EOF'
           cd ~/app
           npm install --production
           pm2 restart myapp || pm2 start server.js --name "myapp"
